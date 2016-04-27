@@ -7,7 +7,12 @@ test:
 	# empty task
 
 deploy:
-	apex deploy --profile sentimentality --region eu-west-1
+	node scripts/deploy.js
 
-test-uppercase:
-	echo '{"value":"foo"}' | apex invoke uppercase --profile sentimentality --region eu-west-1
+test-search-guardian:
+	echo '{"fromDate":"2016-04-07"}' | apex invoke search-guardian --profile sentimentality --region eu-west-1
+
+test: test-search-guardian
+
+logs:
+	apex logs search-guardian --profile sentimentality --region eu-west-1
