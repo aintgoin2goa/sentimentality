@@ -1,0 +1,21 @@
+{
+  "name": "sentimentality",
+  "version": "1.0.0",
+  "description": "Sentiment analysis on news reports",
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aintgoin2goa/sentimentality.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aintgoin2goa/sentimentality/issues"
+  },
+  "homepage": "https://github.com/aintgoin2goa/sentimentality#readme",
+  "devDependencies": {
+    "dotenv": "^2.0.0"
+  }
+}

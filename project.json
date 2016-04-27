@@ -1,0 +1,7 @@
+{
+  "name": "sentimentality",
+  "description": "Sentiment analysis on news reports",
+  "memory": 128,
+  "timeout": 300,
+  "role": "arn:aws:iam::971230454530:role/lambda-functions"
+}
