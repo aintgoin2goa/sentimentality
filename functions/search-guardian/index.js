@@ -49,7 +49,10 @@ function insertUid(uid){
 		docClient.put({
 			TableName: 'guardian_content',
 			Item: {
-				uid: uid
+				uid: uid,
+				date_found: new Date().toString(),
+				crawled: false,
+				ingested: false
 			},
 			ConditionExpression: 'attribute_not_exists(uid)'
 		}, (err, data) => {
@@ -60,10 +63,11 @@ function insertUid(uid){
 				}else{
 					console.log('UID_EXISTS ' + uid);
 				}
-
+			}else{
+				console.log('UID_INSERTED ' + uid);
 			}
 
-			resolve(data);
+			resolve(uid);
 		});
 	})
 }
