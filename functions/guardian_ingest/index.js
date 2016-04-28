@@ -50,9 +50,10 @@ function updateDB(uid){
 			Key: {
 				"uid": uid
 			},
-			UpdateExpression: 'SET crawled = :crawled',
+			UpdateExpression: 'SET ingested = :ingested, ingested_date = :ingested_date',
 			ExpressionAttributeValues: {
-				":crawled" : true
+				":ingested" : true,
+				":ingested_date": new Date().toString()
 			},
 			ReturnValues:'UPDATED_NEW'
 		};

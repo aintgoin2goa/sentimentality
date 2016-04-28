@@ -6,11 +6,34 @@ const co = require('co');
 const AWS = require('aws-sdk');
 const docClient = new AWS.DynamoDB.DocumentClient();
 
-function searchGuardianContentPage(fromDate, page){
+function fetchError(response){
+	let err = new Error(`Fetch Error: ${response.status} ${response.statusText}`);
+	err.type = 'FETCH_ERROR';
+	err.status = response.status;
+	throw err;
+}
+
+function getReleventTags(){
+	let apiKey = process.env.GUARDIAN_API_KEY;
+	let url = `http://content.guardianapis.com/tags?q=refugee&api-key=${apiKey}`;
+	return fetch(url)
+		.then(response => {
+			if(!response.ok){
+				fetchError(response);
+			}
+
+			return response.json();
+		})
+		.then(json => {
+			return json.response.results.map(r => r.id);
+		})
+}
+
+function searchGuardianContentPage(fromDate, tag, page){
 	let apiKey = process.env.GUARDIAN_API_KEY;
 	let pageSize = 100;
 	let query = 'refugee';
-	let url = `http://content.guardianapis.com/search?from-date=${fromDate}&page-size=${pageSize}&page=${page}&q=${query}&api-key=${apiKey}`;
+	let url = `http://content.guardianapis.com/search?tag=${encodeURIComponent(tag)}&from-date=${fromDate}&page-size=${pageSize}&page=${page}&q=${query}&api-key=${apiKey}`;
 	console.log('FETCH ' + url);
 	return fetch(url)
 		.then(response => {
@@ -27,14 +50,14 @@ function searchGuardianContentPage(fromDate, page){
 
 
 
-function searchGuardianContent(fromDate){
+function searchGuardianContent(fromDate, tag){
 	let page = 1;
 	return co(function* (){
-		let data = yield searchGuardianContentPage(fromDate, page);
+		let data = yield searchGuardianContentPage(fromDate, tag, page);
 		console.log(`RECEIVED DATA page=1 total_pages=${data.response.pages}`);
 		while(data.response.pages > page){
 			page++;
-			let moreData = yield searchGuardianContentPage(fromDate, page);
+			let moreData = yield searchGuardianContentPage(fromDate, tag, page);
 			console.log(`RECEIVED DATA page=${page}`);
 			data.response.results = data.response.results.concat(moreData.response.results);
 		}
@@ -75,10 +98,21 @@ function insertUid(uid){
 
 exports.handle = (e, context) => {
 	co(function* (){
-		let content = yield searchGuardianContent(e.fromDate);
-		let uids = yield Promise.all(content.map(insertUid));
-		return {uids:uids.filter(u => u)};
+		let uids = [];
+		let tags = yield getReleventTags();
+		console.log('TAGS', tags);
+		for(let tag of tags){
+			console.log('GET CONTENT FOR TAG', tag);
+			let content = yield searchGuardianContent(e.fromDate, tag);
+			let uidsFound = yield Promise.all(content.map(insertUid));
+			uids = uids.concat(uidsFound.filter(u => u));
+		}
+
+		return {uids:uids};
 	})
 		.then(context.succeed)
-		.catch(context.fail);
+		.catch(err => {
+			console.error(err.stack || err.message);
+			context.fail(err);
+		});
 };
