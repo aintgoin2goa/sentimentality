@@ -15,7 +15,10 @@ test-guardian-search:
 test-guardian-ingest:
 	echo '{"uids":["australia-news/2016/apr/18/manus-island-detainees-plead-anywhere-but-papua-new-guinea"]}' | apex invoke guardian_ingest  --profile sentimentality --region eu-west-1
 
-test: test-guardian-ingest
+test-guardian-analyse:
+	echo '{"uids":["world/2016/apr/26/refugee-children-need-our-protection"]}' | apex invoke guardian_analyse --profile sentimentality --region eu-west-1
+
+test: test-guardian-analyse
 
 logs:
 	apex logs ${f} --profile sentimentality --region eu-west-1
