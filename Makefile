@@ -9,10 +9,18 @@ test:
 deploy:
 	node scripts/deploy.js
 
-test-search-guardian:
-	echo '{"fromDate":"2016-04-07"}' | apex invoke search-guardian --profile sentimentality --region eu-west-1
+test-guardian-search:
+	echo '{"fromDate":"2016-04-07"}' | apex invoke guardian_search --profile sentimentality --region eu-west-1
 
-test: test-search-guardian
+test-guardian-ingest:
+	echo '{"uids":["australia-news/2016/apr/18/manus-island-detainees-plead-anywhere-but-papua-new-guinea"]}' | apex invoke guardian_ingest  --profile sentimentality --region eu-west-1
+
+test: test-guardian-ingest
 
 logs:
-	apex logs search-guardian --profile sentimentality --region eu-west-1
+	apex logs ${f} --profile sentimentality --region eu-west-1
+
+run-guardian:
+	echo '{"fromDate":"2016-04-07"}' | \
+	apex invoke guardian_search --profile sentimentality --region eu-west-1 | \
+	apex invoke guardian_ingest --profile sentimentality --region eu-west-1

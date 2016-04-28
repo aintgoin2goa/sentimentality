@@ -4,7 +4,7 @@ console.log('Starting...');
 const fetch = require('node-fetch');
 const co = require('co');
 const AWS = require('aws-sdk');
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = new AWS.DynamoDB.DocumentClient();
 
 function searchGuardianContentPage(fromDate, page){
 	let apiKey = process.env.GUARDIAN_API_KEY;
@@ -51,8 +51,8 @@ function insertUid(uid){
 			Item: {
 				uid: uid,
 				date_found: new Date().toString(),
-				crawled: false,
-				ingested: false
+				ingested: false,
+				analysed: false
 			},
 			ConditionExpression: 'attribute_not_exists(uid)'
 		}, (err, data) => {
@@ -62,6 +62,7 @@ function insertUid(uid){
 					return reject(err);
 				}else{
 					console.log('UID_EXISTS ' + uid);
+					return resolve(null);
 				}
 			}else{
 				console.log('UID_INSERTED ' + uid);
@@ -74,8 +75,9 @@ function insertUid(uid){
 
 exports.handle = (e, context) => {
 	co(function* (){
-		let results = yield searchGuardianContent(e.fromDate);
-		return Promise.all(results.map(insertUid));
+		let content = yield searchGuardianContent(e.fromDate);
+		let uids = yield Promise.all(content.map(insertUid));
+		return {uids:uids.filter(u => u)};
 	})
 		.then(context.succeed)
 		.catch(context.fail);
