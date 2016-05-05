@@ -4,26 +4,13 @@ const util = require('util');
 const path = require('path');
 const analyze = require('Sentimental').analyze;
 const co = require('co');
-const fetch = require('node-fetch');
+const fetch = require('signed-aws-es-fetch');
 const AWS = require('aws-sdk');
-const esDomain = {
-	endpoint: 'search-sentimentality-4ov3nf6o7h7vbdqbky7csi53zu.eu-west-1.es.amazonaws.com',
-	region: 'eu-west-1',
-	index: 'analysis'
-};
-const endpoint =  new AWS.Endpoint(esDomain.endpoint);
 const s3 = new AWS.S3({params: {Bucket: 'sentimentality-guardian-content'}, region:'eu-west-1'});
 const CREDS = new AWS.EnvironmentCredentials('AWS');
-
 const ES_HOST = 'search-sentimentality-4ov3nf6o7h7vbdqbky7csi53zu.eu-west-1.es.amazonaws.com';
-const ES_UPDATE_PATH = '/_bulk';
+const ES_PATH = '/analysis/guardian/_bulk';
 
-function fetchError(response){
-	let err = new Error(`Fetch Error: ${response.status} ${response.statusText}`);
-	err.type = 'FETCH_ERROR';
-	err.status = response.status;
-	return err;
-}
 
 function getItem(key){
 	return new Promise((resolve, reject) => {
@@ -66,33 +53,34 @@ function analyseItem(item){
 	return result;
 }
 
+function elasticSearchBody(results){
+	let lines = [];
+	for(let result of results){
+		lines.push(JSON.stringify({index: {_id: result.uid}}));
+		lines.push(JSON.stringify(result));
+	}
+
+	return lines.join('\n');
+}
+
 function sendResultsToElasticSearch(results){
-	var req = new AWS.HttpRequest(endpoint);
+	let url = `https://${ES_HOST}${ES_PATH}`;
+	let opts = {
+		method: 'POST',
+		body:elasticSearchBody(results)
+	};
+	console.log('ES REQUEST', url, util.inspect(opts, {depth:null}));
+	return fetch(url, opts, CREDS)
+		.then(response => {
+			if(!response.ok){
+				let err = new Error(`Bad Response from ElasticSearch: ${response.status} ${response.statusText}`);
+				err.name = 'BAD_ES_RESPONSE';
+				err.status = response.status;
+				console.error(err);
+			}
 
-	req.method = 'POST';
-	req.path = path.join('/', esDomain.index);
-	req.region = esDomain.region;
-	req.body = JSON.stringify(results);
-	req.headers['presigned-expires'] = false;
-	req.headers['Host'] = endpoint.host;
-
-	// Sign the request (Sigv4)
-	var signer = new AWS.Signers.V4(req, 'es');
-	signer.addAuthorization(CREDS, new Date());
-	return new Promise((resolve, reject) => {
-		var send = new AWS.NodeHttpClient();
-		send.handleRequest(req, null, function(httpResp) {
-			var body = '';
-			httpResp.on('data', function (chunk) {
-				body += chunk;
-			});
-			httpResp.on('end', function (chunk) {
-				resolve()
-			});
-		}, function(err) {
-			reject(err);
-		});
-	});
+			return response.json();
+		})
 }
 
 
@@ -110,10 +98,8 @@ exports.handle = (e, context) => {
 			results.push(analysisResult);
 		}
 		console.log('STORE RESULTS');
-		for(let result of results){
-			yield sendResultsToElasticSearch(result);
-		}
-		console.log('COMPLETE');
+		let response = yield sendResultsToElasticSearch(results);
+		console.log('COMPLETE', response);
 		return results;
 	})
 		.then(context.succeed)
