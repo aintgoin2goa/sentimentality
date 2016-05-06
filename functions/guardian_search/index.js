@@ -74,8 +74,8 @@ function insertUid(uid){
 			Item: {
 				uid: uid,
 				date_found: new Date().toString(),
-				ingested: false,
-				analysed: false
+				ingested: 0,
+				analysed: 0
 			},
 			ConditionExpression: 'attribute_not_exists(uid)'
 		}, (err, data) => {

@@ -7,6 +7,8 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3({params: {Bucket: 'sentimentality-guardian-content'}, region:'eu-west-1'});
 const db = new AWS.DynamoDB.DocumentClient();
 
+const DB_TABLE = 'guardian_content';
+
 function getContent(uid){
 	let url = `http://content.guardianapis.com/${uid}?api-key=${process.env.GUARDIAN_API_KEY}&show-fields=headline,body`;
 	console.log('FETCH ' + url);
@@ -42,17 +44,35 @@ function saveContent(uid, content){
 	});
 }
 
+function getUids(){
+	let params = {
+		TableName : DB_TABLE,
+		FilterExpression : 'ingested = :no',
+		ExpressionAttributeValues : {':no' : 0}
+	};
+
+	return new Promise((resolve, reject) => {
+		db.scan(params, (err, data) => {
+			if(err){
+				return reject(err);
+			}
+
+			resolve(data.Items.map(i => i.uid));
+		})
+	})
+}
+
 function updateDB(uid){
 	return new Promise((resolve, reject) =>
 	{
 		let params = {
-			TableName: 'guardian_content',
+			TableName: DB_TABLE,
 			Key: {
 				"uid": uid
 			},
 			UpdateExpression: 'SET ingested = :ingested, ingested_date = :ingested_date',
 			ExpressionAttributeValues: {
-				":ingested" : true,
+				":ingested" : 1,
 				":ingested_date": new Date().toString()
 			},
 			ReturnValues:'UPDATED_NEW'
@@ -62,7 +82,7 @@ function updateDB(uid){
 			if(err){
 				reject(err);
 			}else{
-				console.log('DB UPDATE SUCCEEDED');
+				console.log('DB UPDATE SUCCEEDED', data);
 				resolve();
 			}
 		});
@@ -71,7 +91,9 @@ function updateDB(uid){
 
 exports.handle = (e, context) => {
 	return co(function* (){
-		let uids = e.uids;
+		let uids = yield getUids();
+		console.log(`Found ${uids.length} uids to ingest`);
+		
 		for(let uid of uids){
 			console.log('GET ' + uid);
 			let content = yield getContent(uid);
@@ -83,7 +105,7 @@ exports.handle = (e, context) => {
 		}
 
 		console.log('All items ingested');
-		return e;
+		return uids;
 	})
 		.then(context.succeed)
 		.catch(err => {
