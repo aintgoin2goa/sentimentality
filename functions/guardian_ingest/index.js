@@ -105,7 +105,7 @@ exports.handle = (e, context) => {
 		}
 
 		console.log('All items ingested');
-		return uids;
+		return {stage:'ingest', count:uids.length};
 	})
 		.then(context.succeed)
 		.catch(err => {

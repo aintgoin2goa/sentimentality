@@ -117,16 +117,24 @@ function sendToElasticSearch(data){
 		body:elasticSearchBody(data)
 	};
 	console.log('ES REQUEST', url, util.inspect(opts, {depth:null}));
+	let result = [];
 	return fetch(url, opts, CREDS)
 		.then(response => {
 			if(!response.ok){
 				let err = new Error(`Bad Response from ElasticSearch: ${response.status} ${response.statusText}`);
 				err.name = 'BAD_ES_RESPONSE';
 				err.status = response.status;
-				console.error(err);
+				result[0] = 'ERROR';
+				result[1] = err;
+			}else{
+				result[0] = 'SUCCESS';
 			}
 
 			return response.json();
+		})
+		.then(json => {
+			result[1] = json;
+			return result;
 		})
 }
 
@@ -147,11 +155,16 @@ exports.handle = (e, context) => {
 		}
 		console.log('STORE RESULTS');
 		let response = yield sendToElasticSearch(results);
-		console.log(`RESULTS SENT TO ES errors=${response.errors} items=${response.items.length}`);
+		if(response[0] === 'ERROR'){
+			console.log('ES_ERROR', response[1], response[2]);
+			throw response[1];
+		}
+
+		console.log(`RESULTS SENT TO ES errors=${response[1].errors} items=${response[1].items.length}`);
 		for(let result of results){
 			yield updateDB(result.uid);
 		}
-		return results;
+		return {stage:'analyse', count:results.length};
 	})
 		.then(context.succeed)
 		.catch(context.fail);

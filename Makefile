@@ -9,8 +9,10 @@ test:
 deploy:
 	node scripts/deploy.js
 
-test-guardian-search:
-	echo '{"fromDate":"2016-04-07"}' | apex invoke guardian_search --profile sentimentality --region eu-west-1
+run-guardian-search:
+	node getDates.js guardian | \
+	apex invoke guardian_search --profile sentimentality --region eu-west-1 | \
+	node updateConfig.js guardian
 
 run-guardian-ingest:
 	apex invoke guardian_ingest  --profile sentimentality --region eu-west-1
@@ -24,8 +26,6 @@ logs:
 wait:
 	sleep 30
 
-run-guardian:
-	echo '{"fromDate":"2016-04-07"}' | \
-	apex invoke guardian_search --profile sentimentality --region eu-west-1 | \
-	apex invoke guardian_ingest --profile sentimentality --region eu-west-1 | \
-	apex invoke guardian_analyse --profile sentimentality --region eu-west-1
+run-guardian: run-guardian-search run-guardian-ingest run-guardian-analyse
+
+run: run-guardian

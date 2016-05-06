@@ -17,5 +17,8 @@
   "homepage": "https://github.com/aintgoin2goa/sentimentality#readme",
   "devDependencies": {
     "dotenv": "^2.0.0"
+  },
+  "dependencies": {
+    "moment": "^2.13.0"
   }
 }

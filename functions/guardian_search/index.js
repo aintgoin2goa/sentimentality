@@ -29,11 +29,11 @@ function getReleventTags(){
 		})
 }
 
-function searchGuardianContentPage(fromDate, tag, page){
+function searchGuardianContentPage(fromDate, toDate, tag, page){
 	let apiKey = process.env.GUARDIAN_API_KEY;
 	let pageSize = 100;
 	let query = 'refugee';
-	let url = `http://content.guardianapis.com/search?tag=${encodeURIComponent(tag)}&from-date=${fromDate}&page-size=${pageSize}&page=${page}&q=${query}&api-key=${apiKey}`;
+	let url = `http://content.guardianapis.com/search?tag=${encodeURIComponent(tag)}&from-date=${fromDate}&to-date=${toDate}&page-size=${pageSize}&page=${page}&q=${query}&api-key=${apiKey}`;
 	console.log('FETCH ' + url);
 	return fetch(url)
 		.then(response => {
@@ -50,14 +50,14 @@ function searchGuardianContentPage(fromDate, tag, page){
 
 
 
-function searchGuardianContent(fromDate, tag){
+function searchGuardianContent(fromDate, toDate, tag){
 	let page = 1;
 	return co(function* (){
-		let data = yield searchGuardianContentPage(fromDate, tag, page);
+		let data = yield searchGuardianContentPage(fromDate, toDate, tag, page);
 		console.log(`RECEIVED DATA page=1 total_pages=${data.response.pages}`);
 		while(data.response.pages > page){
 			page++;
-			let moreData = yield searchGuardianContentPage(fromDate, tag, page);
+			let moreData = yield searchGuardianContentPage(fromDate, toDate, tag, page);
 			console.log(`RECEIVED DATA page=${page}`);
 			data.response.results = data.response.results.concat(moreData.response.results);
 		}
@@ -100,15 +100,16 @@ exports.handle = (e, context) => {
 	co(function* (){
 		let uids = [];
 		let tags = yield getReleventTags();
+		let count = 0;
 		console.log('TAGS', tags);
 		for(let tag of tags){
 			console.log('GET CONTENT FOR TAG', tag);
-			let content = yield searchGuardianContent(e.fromDate, tag);
+			let content = yield searchGuardianContent(e.fromDate, e.toDate, tag);
 			let uidsFound = yield Promise.all(content.map(insertUid));
 			uids = uids.concat(uidsFound.filter(u => u));
 		}
 
-		return {uids:uids};
+		return {fromDate:e.fromDate, toDate:e.toDate, found:uids.length}
 	})
 		.then(context.succeed)
 		.catch(err => {

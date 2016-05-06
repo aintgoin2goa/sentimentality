@@ -1,0 +1,12 @@
+{
+  "first_date": "2014-01-01",
+  "date_chunk": [
+    1,
+    "month"
+  ],
+  "guardian": {
+    "last_searched": "2016-05-06",
+    "date_format": "YYYY-MM-DD",
+    "mode": "daily"
+  }
+}
