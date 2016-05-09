@@ -20,6 +20,9 @@ run-guardian-ingest:
 run-guardian-analyse:
 	apex invoke guardian_analyse --profile sentimentality --region eu-west-1
 
+run-ft-search:
+	node getDates.js ft | \
+	apex invoke ft_search --profile sentimentality --region eu-west-1
 logs:
 	apex logs ${f} --profile sentimentality --region eu-west-1
 

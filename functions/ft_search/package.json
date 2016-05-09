@@ -1,0 +1,8 @@
+{
+  "name": "search-ft",
+  "version": "1.0.0",
+  "dependencies": {
+    "co": "^4.6.0",
+    "node-fetch": "^1.5.1"
+  }
+}

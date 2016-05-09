@@ -8,5 +8,10 @@
     "last_searched": "2016-05-06",
     "date_format": "YYYY-MM-DD",
     "mode": "daily"
+  },
+  "ft": {
+    "last_searched": null,
+    "date_format": "UTC",
+    "mode": "catchup"
   }
 }

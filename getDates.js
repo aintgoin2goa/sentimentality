@@ -15,7 +15,7 @@ if(config[publication].mode === 'catchup'){
 
 function datetoString(date, format){
 	if(format === 'UTC'){
-		return date.toISOString();
+		return date.utc().format();
 	}else{
 		date.format(format);
 	}
