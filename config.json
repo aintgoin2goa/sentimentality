@@ -10,7 +10,7 @@
     "mode": "daily"
   },
   "ft": {
-    "last_searched": null,
+    "last_searched": "2015-07-31T23:00:00Z",
     "date_format": "UTC",
     "mode": "catchup"
   }

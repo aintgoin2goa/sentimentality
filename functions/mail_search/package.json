@@ -1,0 +1,12 @@
+{
+  "name": "mail_search",
+  "main": "index.js",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.3.9",
+    "co": "^4.6.0",
+    "feed-read": "0.0.1",
+    "node-fetch": "^1.5.2",
+    "xml2js": "^0.4.16"
+  }
+}

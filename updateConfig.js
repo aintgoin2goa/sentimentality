@@ -11,8 +11,8 @@ process.stdin.on('readable', () => {
 	let data = JSON.parse(input);
 	console.log(data);
 
-	let toDate = moment(data.toDate, dateFormat);
-	config[publication].last_searched = toDate.format(dateFormat);
+	let toDate = moment(data.toDate);
+	config[publication].last_searched = dateFormat === 'UTC' ? toDate.utc().format() : toDate.format(dateFormat);
 	fs.writeFileSync('./config.json', JSON.stringify(config, null, 2), {encoding:'utf8'});
 	process.exit(0);
 });
