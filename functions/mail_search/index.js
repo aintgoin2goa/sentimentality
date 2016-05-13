@@ -66,7 +66,7 @@ function insertUid(uid){
 exports.handle = (e, context) => {
 	co(function* (){
 		let content = yield findArticles();
-		let uids = content.map(a => a.link);
+		let uids = content.map(a => a.link.replace('http://www.dailymail.co.uk/', ''));
 		let saved = yield Promise.all(uids.map(insertUid));
 		return Object.assign(e, {stage:'search', count:saved.filter(s => s).length});
 	})

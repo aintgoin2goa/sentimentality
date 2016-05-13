@@ -3,6 +3,7 @@
   "dependencies": {
     "cheerio": "^0.20.0",
     "co": "^4.6.0",
+    "moment": "^2.13.0",
     "node-fetch": "^1.5.2"
   }
 }

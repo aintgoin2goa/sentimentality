@@ -37,6 +37,8 @@ run-mail-search:
 run-mail-ingest:
 	apex invoke mail_ingest --profile sentimentality --region eu-west-1
 
+run-mail-analyse:
+	apex invoke mail_analyse --profile sentimentality --region eu-west-1
 
 
 logs:

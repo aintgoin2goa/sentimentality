@@ -4,9 +4,10 @@ console.log('Starting...');
 const fetch = require('node-fetch');
 const co = require('co');
 const AWS = require('aws-sdk');
-const s3 = new AWS.S3({params: {Bucket: 'sentimentality-ft-content'}, region:'eu-west-1'});
+const s3 = new AWS.S3({params: {Bucket: 'sentimentality-mail-content'}, region:'eu-west-1'});
 const db = new AWS.DynamoDB.DocumentClient();
 const cheerio = require('cheerio');
+const moment = require('moment');
 
 const DB_TABLE = 'mail_content';
 
@@ -27,7 +28,7 @@ function fetchError(response){
 }
 
 function getContent(uid){
-	return fetch(uid)
+	return fetch('http://www.dailymail.co.uk/' + uid)
 		.then(response => {
 			if(!response.ok){
 				fetchError(response);
@@ -37,11 +38,15 @@ function getContent(uid){
 		})
 		.then(html => {
 			let $ = cheerio.load(html);
-			
+
+			let dateString = $('.article-timestamp-published').text().split('\n')[2].trim();
+
+
 			return {
 				headline: $('.article-text h1').text(),
-				body: '',
-				date: '',
+				body: $('div[itemprop="articleBody"]').html(),
+				dateRaw: dateString,
+				date: moment(dateString, 'HH:mm, DD MMMM YYYY').toString(),
 				section : 'immigration'
 			}
 		})
@@ -134,6 +139,7 @@ function deleteItem(uid){
 exports.handle = (e, context) => {
 	return co(function* (){
 		let uids = yield getUids();
+		let count = 0;
 		console.log(`Found ${uids.length} uids to ingest`);
 
 		for(let uid of uids){
@@ -143,21 +149,20 @@ exports.handle = (e, context) => {
 				return deleteItem(uid);
 			});
 
-			return content;
+			if(!content){
+				continue;
+			}
 
-			// if(!content){
-			// 	continue;
-			// }
-			//
-			// console.log('RECEIVED ', uid);
-			// yield saveContent(uid, content);
-			// console.log('SAVED ' + uid);
-			// yield updateDB(uid);
-			// console.log('DB UPDATED ' + uid);
+			console.log('RECEIVED ', uid);
+			yield saveContent(uid, JSON.stringify(content, null, 2));
+			console.log('SAVED ' + uid);
+			yield updateDB(uid);
+			console.log('DB UPDATED ' + uid);
+			count++;
 		}
 
 		console.log('All items ingested');
-		return {stage:'ingest', count:uids.length};
+		return {stage:'ingest', count:count};
 	})
 		.then(context.succeed)
 		.catch(err => {
