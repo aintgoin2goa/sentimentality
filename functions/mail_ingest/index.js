@@ -46,7 +46,7 @@ function getContent(uid){
 				headline: $('.article-text h1').text(),
 				body: $('div[itemprop="articleBody"]').html(),
 				dateRaw: dateString,
-				date: moment(dateString, 'HH:mm, DD MMMM YYYY').toString(),
+				date: moment(dateString, 'HH:mm, DD MMMM YYYY').utc().format(),
 				section : 'immigration'
 			}
 		})

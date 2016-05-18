@@ -51,4 +51,6 @@ run-guardian: run-guardian-search run-guardian-ingest run-guardian-analyse
 
 run-ft: run-ft-search run-ft-ingest run-ft-analyse
 
-run: run-guardian
+run-mail: run-mail-search run-mail-ingest run-mail-analyse
+
+run: run-guardian run-ft run-mail
