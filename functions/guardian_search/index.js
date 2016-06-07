@@ -3,8 +3,9 @@ console.log('Starting...');
 
 const fetch = require('node-fetch');
 const co = require('co');
-const AWS = require('aws-sdk');
-const docClient = new AWS.DynamoDB.DocumentClient();
+const aws = require('sentimentality-utils').aws;
+
+const DB_TABLE = 'guardian_content';
 
 function fetchError(response){
 	let err = new Error(`Fetch Error: ${response.status} ${response.statusText}`);
@@ -67,37 +68,12 @@ function searchGuardianContent(fromDate, toDate, tag){
 }
 
 function insertUid(uid){
-	console.log('INSERT ' + uid);
-	return new Promise((resolve, reject) => {
-		docClient.put({
-			TableName: 'guardian_content',
-			Item: {
-				uid: uid,
-				date_found: new Date().toString(),
-				ingested: 0,
-				analysed: 0
-			},
-			ConditionExpression: 'attribute_not_exists(uid)'
-		}, (err, data) => {
-			if(err){
-				if(!/The conditional request failed/i.test(err.message)){
-					console.log('INSERT_UID_ERROR ' + err.message);
-					return reject(err);
-				}else{
-					console.log('UID_EXISTS ' + uid);
-					return resolve(null);
-				}
-			}else{
-				console.log('UID_INSERTED ' + uid);
-			}
-
-			resolve(uid);
-		});
-	})
+	return aws.dynamodb.insert(DB_TABLE, uid);
 }
 
 exports.handle = (e, context) => {
 	co(function* (){
+		console.log('begin search', e);
 		let uids = [];
 		let tags = yield getReleventTags();
 		let count = 0;

@@ -17,7 +17,7 @@ function datetoString(date, format){
 	if(format === 'UTC'){
 		return date.utc().format();
 	}else{
-		date.format(format);
+		return date.format(format);
 	}
 }
 

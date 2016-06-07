@@ -32,7 +32,9 @@ run-ft-analyse:
 	apex invoke ft_analyse --profile sentimentality --region eu-west-1
 
 run-mail-search:
-	apex invoke mail_search --profile sentimentality --region eu-west-1
+	node getDates.js mail | \
+	apex invoke mail_search --profile sentimentality --region eu-west-1 | \
+	node updateConfig.js mail
 
 run-mail-ingest:
 	apex invoke mail_ingest --profile sentimentality --region eu-west-1
@@ -53,4 +55,3 @@ run-ft: run-ft-search run-ft-ingest run-ft-analyse
 
 run-mail: run-mail-search run-mail-ingest run-mail-analyse
 
-run: run-guardian run-ft run-mail

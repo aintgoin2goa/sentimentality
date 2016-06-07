@@ -5,13 +5,18 @@
     "month"
   ],
   "guardian": {
-    "last_searched": "2016-05-06",
+    "last_searched": "2016-06-07",
     "date_format": "YYYY-MM-DD",
     "mode": "daily"
   },
   "ft": {
-    "last_searched": "2016-02-01T00:00:00Z",
+    "last_searched": "2016-06-03T21:07:14Z",
     "date_format": "UTC",
+    "mode": "daily"
+  },
+  "mail": {
+    "last_searched": null,
+    "date_format": "YYYYMMDD",
     "mode": "catchup"
   }
 }
