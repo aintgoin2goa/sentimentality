@@ -3,78 +3,21 @@ console.log('STARTING...');
 const util = require('util');
 const path = require('path');
 const analyze = require('Sentimental').analyze;
+const aws = require('sentimentality-utils').aws;
 const co = require('co');
-const fetch = require('signed-aws-es-fetch');
-
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3({params: {Bucket: 'sentimentality-ft-content'}, region:'eu-west-1'});
-const CREDS = new AWS.EnvironmentCredentials('AWS');
-
-const db = new AWS.DynamoDB.DocumentClient();
 const DB_TABLE = 'ft_content';
-
-const ES_HOST = 'search-sentimentality-4ov3nf6o7h7vbdqbky7csi53zu.eu-west-1.es.amazonaws.com';
-const INDEX_NAME = 'refugees';
-const INDEX_TYPE = 'ft';
+const BUCKET = 'sentimentality-ft-content';
 
 function getArticlestoAnalyse(){
-	let params = {
-		TableName : DB_TABLE,
-		FilterExpression : 'analysed = :no AND ingested = :yes',
-		ExpressionAttributeValues : {':no' : 0, ':yes' : 1}
-	};
-
-	return new Promise((resolve, reject) => {
-		db.scan(params, (err, data) => {
-			if(err){
-				return reject(err);
-			}
-
-			resolve(data.Items.map(i => i.uid));
-		})
-	})
+	return aws.dynamodb.find(DB_TABLE, {'analysed':0,'ingested':1});
 }
 
 function updateDB(uid){
-	return new Promise((resolve, reject) =>
-	{
-		let params = {
-			TableName: DB_TABLE,
-			Key: {
-				"uid": uid
-			},
-			UpdateExpression: 'SET analysed = :analysed, analysed_date = :analysed_date',
-			ExpressionAttributeValues: {
-				":analysed" : 1,
-				":analysed_date": new Date().toString()
-			},
-			ReturnValues:'UPDATED_NEW'
-		};
-		console.log('UPDATE DB', params);
-		db.update(params, (err, data) => {
-			if(err){
-				reject(err);
-			}else{
-				console.log('DB UPDATE SUCCEEDED', data);
-				resolve();
-			}
-		});
-	});
+	return aws.dynamodb.update(DB_TABLE, uid, {'analysed':1, 'analysed_date':new Date().toString()});
 }
 
 function getItem(key){
-	return new Promise((resolve, reject) => {
-		s3.getObject({
-			Key: key
-		}, (err, data) => {
-			if(err){
-				reject(err);
-			}
-
-			let item = JSON.parse(data.Body.toString('utf8'));
-			resolve(item);
-		});
-	});
+	return aws.s3.retrieve(BUCKET, key);
 }
 
 function removeHTMLTags(body){
@@ -100,42 +43,9 @@ function analyseItem(item){
 	return result;
 }
 
-function elasticSearchBody(results){
-	let lines = [];
-	for(let result of results){
-		lines.push(JSON.stringify({index: {_id: result.uid}}));
-		lines.push(JSON.stringify(result));
-	}
-	lines.push('\n');
-	return lines.join('\n');
-}
 
 function sendToElasticSearch(data){
-	let url = `https://${ES_HOST}/${INDEX_NAME}/${INDEX_TYPE}/_bulk`;
-	let opts = {
-		method: 'POST',
-		body:elasticSearchBody(data)
-	};
-	console.log('ES REQUEST', url, util.inspect(opts, {depth:null}));
-	let result = [];
-	return fetch(url, opts, CREDS)
-		.then(response => {
-			if(!response.ok){
-				let err = new Error(`Bad Response from ElasticSearch: ${response.status} ${response.statusText}`);
-				err.name = 'BAD_ES_RESPONSE';
-				err.status = response.status;
-				result[0] = 'ERROR';
-				result[1] = err;
-			}else{
-				result[0] = 'SUCCESS';
-			}
-
-			return response.json();
-		})
-		.then(json => {
-			result[1] = json;
-			return result;
-		})
+	aws.elasticsearch.sendData('ft', data);
 }
 
 

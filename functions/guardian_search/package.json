@@ -4,6 +4,6 @@
   "dependencies": {
     "co": "^4.6.0",
     "node-fetch": "^1.5.1",
-    "sentimentality-utils": "^1.0.0"
+    "sentimentality-utils": "^1.1.0"
   }
 }

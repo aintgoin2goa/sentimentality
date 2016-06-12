@@ -3,11 +3,10 @@ console.log('Starting...');
 
 const fetch = require('node-fetch');
 const co = require('co');
-const AWS = require('aws-sdk');
-const s3 = new AWS.S3({params: {Bucket: 'sentimentality-ft-content'}, region:'eu-west-1'});
-const db = new AWS.DynamoDB.DocumentClient();
+const aws = require('sentimentality-utils').aws;
 
 const DB_TABLE = 'ft_content';
+const BUCKET = 'sentimentality-ft-content';
 
 function fetchError(response){
 	let err = new Error(`Fetch Error: ${response.status} ${response.statusText}`);
@@ -44,87 +43,19 @@ function getContent(uid){
 }
 
 function saveContent(uid, content){
-	console.log('S3 UPLOAD', uid);
-	return new Promise((resolve, reject) => {
-		s3.upload({
-			Key: uid,
-			Body: content,
-			ACL: 'authenticated-read',
-			ContentType: 'application/json',
-			ContentEncoding: 'utf8'
-		}, (err) => {
-			if(err){
-				return reject(err);
-			}
-
-			resolve({success:true});
-		})
-	});
+	return aws.s3.upload(BUCKET, uid, content);
 }
 
 function getUids(){
-	let params = {
-		TableName : DB_TABLE,
-		FilterExpression : 'ingested = :no',
-		ExpressionAttributeValues : {':no' : 0}
-	};
-
-	return new Promise((resolve, reject) => {
-		db.scan(params, (err, data) => {
-			if(err){
-				return reject(err);
-			}
-
-			resolve(data.Items.map(i => i.uid));
-		})
-	})
+	return aws.dynamodb.find(DB_TABLE, 'ingested', 0);
 }
 
 function updateDB(uid){
-	return new Promise((resolve, reject) =>
-	{
-		let params = {
-			TableName: DB_TABLE,
-			Key: {
-				"uid": uid
-			},
-			UpdateExpression: 'SET ingested = :ingested, ingested_date = :ingested_date',
-			ExpressionAttributeValues: {
-				":ingested" : 1,
-				":ingested_date": new Date().toString()
-			},
-			ReturnValues:'UPDATED_NEW'
-		};
-		console.log('UPDATE DB', params);
-		db.update(params, (err, data) => {
-			if(err){
-				reject(err);
-			}else{
-				console.log('DB UPDATE SUCCEEDED', data);
-				resolve();
-			}
-		});
-	});
+	return dynamodb.update(DB_TABLE, uid, {'ingested':1, 'ingested_date':new Date().toString()});
 }
 
 function deleteItem(uid){
-	let params = {
-		TableName: DB_TABLE,
-		Key: {
-			uid: uid
-		}
-	};
-	return new Promise((resolve, reject) => {
-		db.delete(params, (err, data) => {
-			if(err){
-				reject(err);
-			}else{
-				console.log('ITEM REMOVED', uid);
-				resolve();
-			}
-		});
-	});
-
+	return dynamodb.delete(DB_TABLE, uid);
 }
 
 exports.handle = (e, context) => {

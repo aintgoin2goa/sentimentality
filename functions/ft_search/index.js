@@ -3,9 +3,8 @@ console.log('Starting...');
 
 const fetch = require('node-fetch');
 const co = require('co');
-const AWS = require('aws-sdk');
-const docClient = new AWS.DynamoDB.DocumentClient();
 const util = require('util');
+const aws = require('sentimentality-utils').aws;
 
 const DB_TABLE = 'ft_content';
 
@@ -13,8 +12,8 @@ function fetchError(response){
 	let err = new Error(`Fetch Error: ${response.status} ${response.statusText}`);
 	err.type = 'FETCH_ERROR';
 	err.status = response.status;
-	return response.json().then(json => {
-		err.data = json.query.errors;
+	return response.text().then(text => {
+		err.data = text;
 		throw err;
 	});
 }
@@ -49,33 +48,7 @@ function searchFT(fromDate, toDate){
 }
 
 function insertUid(uid){
-	console.log('INSERT ' + uid);
-	return new Promise((resolve, reject) => {
-		docClient.put({
-			TableName: DB_TABLE,
-			Item: {
-				uid: uid,
-				date_found: new Date().toString(),
-				ingested: 0,
-				analysed: 0
-			},
-			ConditionExpression: 'attribute_not_exists(uid)'
-		}, (err, data) => {
-			if(err){
-				if(!/The conditional request failed/i.test(err.message)){
-					console.log('INSERT_UID_ERROR ' + err.message);
-					return reject(err);
-				}else{
-					console.log('UID_EXISTS ' + uid);
-					return resolve(null);
-				}
-			}else{
-				console.log('UID_INSERTED ' + uid);
-			}
-
-			resolve(uid);
-		});
-	})
+	return aws.dynamodb.insert(DB_TABLE, uid);
 }
 
 exports.handle = (e, context) => {
